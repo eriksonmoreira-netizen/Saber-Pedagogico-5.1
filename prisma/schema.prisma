@@ -1,1 +1,65 @@
-��H\CB82$�zw�j�+rX��
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  full_name   String?
+  role        String   @default("user")
+  plan        String   @default("semente")
+  status      String   @default("active")
+  photo_url   String?  @db.Text
+  last_login  DateTime @default(now())
+  created_at  DateTime @default(now())
+
+  @@map("users")
+}
+
+model SchoolClass {
+  id        String   @id @default(uuid())
+  name      String
+  grade     String
+  shift     String
+  teacherId String
+  createdAt DateTime @default(now())
+
+  @@map("school_classes")
+}
+
+model Student {
+  id              String   @id @default(uuid())
+  name            String
+  classId         String
+  photo_url       String?  @db.Text
+  performance_logs Json?    
+  created_at      DateTime @default(now())
+
+  @@map("students")
+}
+
+model Occurrence {
+  id          String   @id @default(uuid())
+  studentId   String
+  description String   @db.Text
+  type        String
+  date        DateTime @default(now())
+
+  @@map("occurrences")
+}
+
+model Tutoria {
+  id          String   @id @default(uuid())
+  studentId   String
+  goal        String   @db.Text
+  observations String  @db.Text
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@map("tutorias")
+}
