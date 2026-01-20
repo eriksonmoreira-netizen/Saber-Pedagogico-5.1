@@ -1,1 +1,109 @@
-��H\CB82$�zw�j�+rX��
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  full_name   String?
+  role        String   @default("user") // "user", "admin", "SUPER_ADM"
+  plan        String   @default("semente")
+  status      String   @default("active")
+  photo_url   String?  @db.Text
+  last_login  DateTime @default(now())
+  created_at  DateTime @default(now())
+  
+  // Memória da IA: Histórico de interações para aprendizado
+  ai_interactions AIInteraction[]
+
+  @@map("users")
+}
+
+model SchoolClass {
+  id        String     @id @default(uuid())
+  name      String
+  grade     String
+  shift     String
+  teacherId String
+  createdAt DateTime   @default(now())
+  logs      ClassLog[] 
+
+  @@map("school_classes")
+}
+
+model Student {
+  id              String       @id @default(uuid())
+  name            String
+  classId         String
+  photo_url       String?      @db.Text
+  performance_logs Json?       // Dados para aprendizado da IA sobre o aluno
+  created_at      DateTime     @default(now())
+  attendances     Attendance[] 
+
+  @@map("students")
+}
+
+model ClassLog {
+  id          String       @id @default(uuid())
+  classId     String
+  date        DateTime     @default(now())
+  content     String       @db.Text   // Conteúdo aplicado
+  activities  String       @db.Text   // Atividades realizadas
+  
+  schoolClass SchoolClass  @relation(fields: [classId], references: [id])
+  attendances Attendance[] 
+
+  @@map("class_logs")
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  studentId  String
+  classLogId String
+  status     String   // "presente", "falta", "atraso"
+  
+  student    Student  @relation(fields: [studentId], references: [id])
+  classLog   ClassLog @relation(fields: [classLogId], references: [id])
+
+  @@map("attendance_records")
+}
+
+// NOVO: Memória e Aprendizado da IA
+model AIInteraction {
+  id        String   @id @default(uuid())
+  userId    String
+  role      String   // "user" ou "assistant"
+  content   String   @db.Text
+  context   String?  @db.Text // Página onde o usuário estava ou ação que realizou
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("ai_interactions")
+}
+
+model Occurrence {
+  id          String   @id @default(uuid())
+  studentId   String
+  description String   @db.Text
+  type        String
+  date        DateTime @default(now())
+
+  @@map("occurrences")
+}
+
+model Tutoria {
+  id          String   @id @default(uuid())
+  studentId   String
+  goal        String   @db.Text
+  observations String  @db.Text
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@map("tutorias")
+}
