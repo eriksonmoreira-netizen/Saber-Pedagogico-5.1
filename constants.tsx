@@ -15,7 +15,8 @@ import {
   BarChart3,
   Building2,
   Lock,
-  UserCheck
+  UserCheck,
+  Book
 } from 'lucide-react';
 import { Student, SchoolClass, Notification, UserRole, PlanType } from './types';
 
@@ -32,6 +33,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
   { id: 'super_adm_panel', label: 'Painel Super Adm', icon: <UserCheck />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR', 'PARENT'], minPlan: 'SEMENTE' },
   { id: 'dashboard', label: 'Início', icon: <LayoutDashboard />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR', 'PARENT'], minPlan: 'SEMENTE' },
   { id: 'classes', label: 'Minhas Turmas', icon: <BookOpen />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR'], minPlan: 'SEMENTE' },
+  { id: 'class_diary', label: 'Diário de Classe', icon: <Book />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR'], minPlan: 'SEMENTE' },
   { id: 'students', label: 'Alunos', icon: <Users />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR'], minPlan: 'SEMENTE' },
   { id: 'grades', label: 'Notas e Boletins', icon: <GraduationCap />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR', 'PARENT'], minPlan: 'SEMENTE' },
   { id: 'attendance', label: 'Frequência', icon: <CalendarCheck />, roles: ['SUPER_ADM', 'ADMIN', 'TEACHER', 'COORDINATOR', 'PARENT'], minPlan: 'SEMENTE' },

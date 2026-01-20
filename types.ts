@@ -56,6 +56,17 @@ export interface SchoolClass {
   status: 'ativa' | 'arquivada';
   grade_criteria: GradeCriterion[];
   created_by?: string;
+  grade?: string;
+}
+
+// Interface Nova
+export interface ClassLog {
+  id: string;
+  class_id: string;
+  date: string;
+  content: string;
+  activities: string;
+  created_at: string;
 }
 
 export type StudentStatus = 'ACTIVE' | 'TRANSFERRED' | 'TRANSFER_DROP' | 'REASSIGNED';

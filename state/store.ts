@@ -1,4 +1,5 @@
-import { Student, SchoolClass, Grade, Occurrence, Tutoring, User, PlanType, UserLead, Attendance, UserRole, Invoice } from '../types';
+
+import { Student, SchoolClass, Grade, Occurrence, Tutoring, User, Attendance, Invoice, PlanType, ClassLog } from '../types';
 import { MOCK_STUDENTS, MOCK_CLASSES } from '../constants';
 
 class DataStore {
@@ -9,20 +10,28 @@ class DataStore {
   occurrences: Occurrence[] = JSON.parse(localStorage.getItem('saber_occurrences') || '[]');
   tutorings: Tutoring[] = JSON.parse(localStorage.getItem('saber_tutorings') || '[]');
   attendances: Attendance[] = JSON.parse(localStorage.getItem('saber_attendances') || '[]');
+  classLogs: ClassLog[] = JSON.parse(localStorage.getItem('saber_class_logs') || '[]');
   invoices: Invoice[] = JSON.parse(localStorage.getItem('saber_invoices') || '[]');
   
   registeredUsers: User[] = JSON.parse(localStorage.getItem('saber_all_users') || '[]');
   
+  private listeners: (() => void)[] = [];
+
   constructor() {
     const masterEmail = 'erikson.moreira@gmail.com';
 
-    // CORREÇÃO IMEDIATA NO LOAD: Se o usuário logado for o Erikson, força admin na hora
+    // REGRA DE OURO: Se for o Erikson, garante permissões máximas na inicialização
     if (this.user && this.user.email.toLowerCase().trim() === masterEmail) {
-      console.log("👑 BOOT: Forçando permissões de Super ADM para Erikson.");
-      this.user.role = 'SUPER_ADM';
-      this.user.plan = 'GESTOR';
-      this.user.status = 'ativo';
-      this.persist();
+      if (this.user.role !== 'SUPER_ADM' || this.user.plan !== 'GESTOR') {
+        console.log("👑 BOOT: Corrigindo permissões para Erikson Moreira.");
+        this.user = {
+          ...this.user,
+          role: 'SUPER_ADM',
+          plan: 'GESTOR',
+          status: 'ativo'
+        };
+        this.persist();
+      }
     }
 
     if (this.classes.length === 0 && !localStorage.getItem('saber_initialized')) {
@@ -32,12 +41,12 @@ class DataStore {
       localStorage.setItem('saber_initialized', 'true');
     }
 
-    // Garante que o usuário mestre exista na base global com permissões máximas
+    // Garante que o usuário mestre exista na base local de usuários
     const masterIndex = this.registeredUsers.findIndex(u => u.email.toLowerCase() === masterEmail);
     
     if (masterIndex === -1) {
-      this.registeredUsers.push({
-        id: 'u-master',
+      const masterUser: User = {
+        id: 'u-master-erikson',
         full_name: 'Erikson Moreira',
         email: masterEmail,
         role: 'SUPER_ADM',
@@ -46,18 +55,18 @@ class DataStore {
         status: 'ativo',
         created_at: '2024-01-01T00:00:00.000Z',
         last_login: new Date().toISOString()
-      });
+      };
+      this.registeredUsers.push(masterUser);
       this.persist();
     } else {
-      // Garante que se o usuário já existe, as permissões estão corretas (Prevenção de reset)
-      this.registeredUsers[masterIndex].role = 'SUPER_ADM';
-      this.registeredUsers[masterIndex].plan = 'GESTOR';
-      this.registeredUsers[masterIndex].status = 'ativo';
-      this.persist();
+      // Atualiza permissões caso tenham sido alteradas indevidamente
+      if (this.registeredUsers[masterIndex].role !== 'SUPER_ADM') {
+        this.registeredUsers[masterIndex].role = 'SUPER_ADM';
+        this.registeredUsers[masterIndex].plan = 'GESTOR';
+        this.persist();
+      }
     }
   }
-
-  private listeners: (() => void)[] = [];
 
   subscribe(listener: () => void) {
     this.listeners.push(listener);
@@ -73,6 +82,7 @@ class DataStore {
     localStorage.setItem('saber_occurrences', JSON.stringify(this.occurrences));
     localStorage.setItem('saber_tutorings', JSON.stringify(this.tutorings));
     localStorage.setItem('saber_attendances', JSON.stringify(this.attendances));
+    localStorage.setItem('saber_class_logs', JSON.stringify(this.classLogs));
     localStorage.setItem('saber_all_users', JSON.stringify(this.registeredUsers));
     localStorage.setItem('saber_invoices', JSON.stringify(this.invoices));
     if (this.user) {
@@ -91,10 +101,9 @@ class DataStore {
     const emailKey = userData.email.toLowerCase().trim();
     const now = new Date().toISOString();
     
-    // REGRA DE OURO PARA ADMIN (Erikson Moreira)
-    // Isso é a interceptação agressiva solicitada para o login
+    // REGRA DE OURO PARA LOGIN
     if (emailKey === 'erikson.moreira@gmail.com') {
-      console.log("👑 LOGIN OVERRIDE: Erikson detetado, forçando ADMIN/GESTOR.");
+      console.log("👑 LOGIN: Erikson Moreira detectado. Aplicando God Mode.");
       userData.role = 'SUPER_ADM';
       userData.plan = 'GESTOR';
       userData.status = 'ativo';
@@ -112,18 +121,12 @@ class DataStore {
         status: 'ativo'
       };
       
-      // Re-garante os privilégios mestre no merge final
-      if (emailKey === 'erikson.moreira@gmail.com') {
-        updatedUser.role = 'SUPER_ADM';
-        updatedUser.plan = 'GESTOR';
-      }
-      
       this.registeredUsers[existingIndex] = updatedUser;
       this.user = updatedUser;
     } else {
       const newUser: User = {
         ...userData,
-        id: `u-${Date.now()}`,
+        id: userData.id || `u-${Date.now()}`,
         status: 'ativo',
         created_at: now,
         last_login: now,
@@ -153,7 +156,7 @@ class DataStore {
     this.registeredUsers = this.registeredUsers.map(u => {
       if (u.id === userId) {
         const updated = { ...u, ...updates };
-        // Impede que o Erikson seja rebaixado por engano via Painel
+        // Proteção contra rebaixamento do Erikson
         if (u.email.toLowerCase().trim() === 'erikson.moreira@gmail.com') {
           updated.role = 'SUPER_ADM';
           updated.plan = 'GESTOR';
@@ -164,8 +167,7 @@ class DataStore {
     });
 
     if (this.user?.id === userId) {
-      this.user = { ...this.user, ...updates };
-      // Override final para o usuário atual
+      this.user = { ...this.user, ...updates } as User;
       if (this.user.email.toLowerCase().trim() === 'erikson.moreira@gmail.com') {
         this.user.role = 'SUPER_ADM';
         this.user.plan = 'GESTOR';
@@ -175,28 +177,29 @@ class DataStore {
   }
 
   deleteUserBySuperAdm(userId: string) {
-    // Impede deletar o Erikson
     const targetUser = this.registeredUsers.find(u => u.id === userId);
-    if (targetUser?.email.toLowerCase().trim() === 'erikson.moreira@gmail.com') return;
+    if (targetUser?.email.toLowerCase().trim() === 'erikson.moreira@gmail.com') {
+      alert("Operação bloqueada: Não é possível excluir o Super Admin Principal.");
+      return;
+    }
     
     if (this.user?.id === userId) return;
     this.registeredUsers = this.registeredUsers.filter(u => u.id !== userId);
     this.notify();
   }
 
-  addInvoice(invoice: Invoice) {
-    this.invoices = [invoice, ...this.invoices];
+  setAllData(data: { students: Student[], classes: SchoolClass[], grades: Grade[], occurrences: Occurrence[], tutorings: Tutoring[], attendances: Attendance[] }) {
+    this.students = data.students;
+    this.classes = data.classes;
+    this.grades = data.grades;
+    this.occurrences = data.occurrences;
+    this.tutorings = data.tutorings;
+    this.attendances = data.attendances;
     this.notify();
   }
 
-  upgradePlan(newPlan: PlanType) {
-    if (this.user) {
-      this.updateUserBySuperAdm(this.user.id, { plan: newPlan });
-    }
-  }
-
-  updateStudent(studentId: string, updates: Partial<Student>) {
-    this.students = this.students.map(s => s.id === studentId ? { ...s, ...updates } : s);
+  updateClass(updatedClass: SchoolClass) {
+    this.classes = this.classes.map(c => c.id === updatedClass.id ? updatedClass : c);
     this.notify();
   }
 
@@ -216,6 +219,16 @@ class DataStore {
     this.notify();
   }
 
+  saveClassLog(log: ClassLog) {
+    const idx = this.classLogs.findIndex(l => l.id === log.id);
+    if (idx !== -1) {
+      this.classLogs[idx] = log;
+    } else {
+      this.classLogs = [log, ...this.classLogs];
+    }
+    this.notify();
+  }
+
   saveOccurrence(occ: Occurrence) {
     const idx = this.occurrences.findIndex(o => o.id === occ.id);
     if (idx !== -1) this.occurrences[idx] = occ;
@@ -229,15 +242,21 @@ class DataStore {
     else this.tutorings = [tut, ...this.tutorings];
     this.notify();
   }
-
-  setAllData(data: { students: Student[], classes: SchoolClass[], grades: Grade[], occurrences: Occurrence[], tutorings: Tutoring[], attendances: Attendance[] }) {
-    this.students = data.students;
-    this.classes = data.classes;
-    this.grades = data.grades;
-    this.occurrences = data.occurrences;
-    this.tutorings = data.tutorings;
-    this.attendances = data.attendances;
+  
+  updateStudent(studentId: string, updates: Partial<Student>) {
+    this.students = this.students.map(s => s.id === studentId ? { ...s, ...updates } : s);
     this.notify();
+  }
+
+  addInvoice(invoice: Invoice) {
+    this.invoices = [invoice, ...this.invoices];
+    this.notify();
+  }
+
+  upgradePlan(newPlan: PlanType) {
+    if (this.user) {
+      this.updateUserBySuperAdm(this.user.id, { plan: newPlan });
+    }
   }
 
   reset() {
@@ -247,8 +266,10 @@ class DataStore {
     this.occurrences = [];
     this.tutorings = [];
     this.attendances = [];
-    this.registeredUsers = this.registeredUsers.filter(u => u.email === 'erikson.moreira@gmail.com');
+    this.classLogs = [];
     this.invoices = [];
+    // Mantém o super admin
+    this.registeredUsers = this.registeredUsers.filter(u => u.email.toLowerCase() === 'erikson.moreira@gmail.com');
     localStorage.removeItem('saber_initialized');
     this.notify();
   }

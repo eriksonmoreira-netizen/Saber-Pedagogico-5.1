@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -16,6 +17,7 @@ import { Settings } from './components/Settings';
 import { Login } from './components/Login';
 import { SuperAdmDashboard } from './components/SuperAdmDashboard';
 import { Classes } from './components/Classes';
+import { ClassDiary } from './components/ClassDiary';
 import { PaymentStatus } from './components/PaymentStatus';
 import { store } from './state/store';
 
@@ -95,6 +97,7 @@ const App: React.FC = () => {
         return <SuperAdmDashboard />;
       case 'dashboard': return <Dashboard />;
       case 'classes': return <Classes onSelectStudent={(id) => setSelectedStudentId(id)} />;
+      case 'class_diary': return <ClassDiary />;
       case 'students': return <Students onSelectStudent={(id) => setSelectedStudentId(id)} />;
       case 'grades': return <Grades />;
       case 'attendance': return <Attendance />;
