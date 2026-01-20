@@ -1,3 +1,4 @@
+// Configuração do Cliente e Conexão
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,11 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Gestão de Utilizadores e Assinaturas
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
   full_name   String?
-  role        String   @default("user")
+  role        String   @default("user") // "user", "admin", "SUPER_ADM"
   plan        String   @default("semente")
   status      String   @default("active")
   photo_url   String?  @db.Text
@@ -21,28 +23,59 @@ model User {
   @@map("users")
 }
 
+// Estrutura Escolar
 model SchoolClass {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
   grade     String
   shift     String
   teacherId String
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
+  logs      ClassLog[] // Relacionamento com o Diário de Classe
 
   @@map("school_classes")
 }
 
 model Student {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   name            String
   classId         String
-  photo_url       String?  @db.Text
-  performance_logs Json?    
-  created_at      DateTime @default(now())
+  photo_url       String?      @db.Text
+  performance_logs Json?       // Histórico para IA e BNCC
+  created_at      DateTime     @default(now())
+  attendances     Attendance[] // Relacionamento com Frequência
 
   @@map("students")
 }
 
+// NOVO: Diário de Classe (Conteúdo e Atividades)
+model ClassLog {
+  id          String       @id @default(uuid())
+  classId     String
+  date        DateTime     @default(now())
+  content     String       @db.Text   // Conteúdo aplicado
+  activities  String       @db.Text   // Atividades do dia
+  
+  schoolClass SchoolClass  @relation(fields: [classId], references: [id])
+  attendances Attendance[] // Chamada vinculada a esta aula
+
+  @@map("class_logs")
+}
+
+// Frequência Detalhada
+model Attendance {
+  id         String   @id @default(uuid())
+  studentId  String
+  classLogId String
+  status     String   // "presente", "falta", "atraso"
+  
+  student    Student  @relation(fields: [studentId], references: [id])
+  classLog   ClassLog @relation(fields: [classLogId], references: [id])
+
+  @@map("attendance_records")
+}
+
+// Módulos Pedagógicos Adicionais
 model Occurrence {
   id          String   @id @default(uuid())
   studentId   String
