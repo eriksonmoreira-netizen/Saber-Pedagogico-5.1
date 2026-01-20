@@ -118,12 +118,17 @@ export const Classes: React.FC<ClassesProps> = ({ onSelectStudent }) => {
         }
       }
     });
-
-    return { 
-      spotlight: bestSpotlight ? { student: bestSpotlight, stats: calculateStudentStats(bestSpotlight.id) } : null,
-      improvement: (bestImprStudent && bestImprValue > 0) ? { student: bestImprStudent, value: bestImprValue } : null
-    };
-  }, [selectedClassId, students, grades, attendances]);
+    
+return { 
+  spotlight: bestSpotlight && bestSpotlight.id ? { 
+    student: bestSpotlight, 
+    stats: calculateStudentStats(bestSpotlight.id) 
+  } : null,
+  
+  improvement: (bestImprStudent && bestImprStudent.id && bestImprValue > 0) ? { 
+    student: bestImprStudent, 
+    value: bestImprValue 
+  } : null
 
   const handleAddClass = () => {
     if (!newClassName || !newSubject || !newSchoolYear) {
